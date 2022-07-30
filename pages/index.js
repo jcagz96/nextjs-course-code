@@ -1,34 +1,53 @@
 import MeetupList from '../components/meetups/MeetupList';
-
-const DUMMY_MEETUPS = [
-  {
-    id: 'm1',
-    title: 'A First Meetup',
-    image: 'https://static.barcelo.com/content/dam/bhg/master/es/hoteles/republica-checa/praga/imagenes-praga/praga-rutas-1600.jpg.bhgimg.optm1100.jpg/1604687947914.jpg',
-    address: 'Some adress 5, 1231231 - lisbon',
-    description: ' this is a description 1'
-  },
-  {
-    id: 'm2',
-    title: 'A Second Meetup',
-    image: 'https://static.barcelo.com/content/dam/bhg/master/es/hoteles/republica-checa/praga/imagenes-praga/praga-rutas-1600.jpg.bhgimg.optm1100.jpg/1604687947914.jpg',
-    address: 'Some adress 5, 2232232 - lisbon',
-    description: ' this is a description 2'
-  }
-];
+import { MongoClient } from 'mongodb';
+import Head from 'next/head';
 
 function HomePage(props) {
   return (
-    <MeetupList meetups={props.meetups} />
+    <>
+      <Head>
+        <title>React Meetups</title>
+        <meta name="description" content="Browse a huge list of highly active React meetups!" />
+      </Head>
+      <MeetupList meetups={props.meetups} />
+    </>
   );
 }
 
+/* export async function getServerSideProps(context){
+
+  const req = context.req;
+  const res = context.res;
+
+  //fetch data from an API
+
+  return{
+    props: DUMMY_MEETUPS
+  };
+} */
+
 export async function getStaticProps() {
   //fetch data from an API
+
+  const client = await MongoClient.connect(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@verceltestecluster.nedjy.mongodb.net/meetups?retryWrites=true&w=majority`);
+  const db = client.db();
+
+  const meetupsCollection = db.collection('meetups');
+
+  const meetups = await meetupsCollection.find().toArray();
+
+  client.close();
+
   return {
     props: {
-      meetups: DUMMY_MEETUPS
-    }
+      meetups: meetups.map(meetup => ({
+        title: meetup.title,
+        address: meetup.address,
+        image: meetup.image,
+        id: meetup._id.toString()
+      }))
+    },
+    revalidate: 1
   }
 }
 
